@@ -1,0 +1,1 @@
+# wp-no-bs-smtp
