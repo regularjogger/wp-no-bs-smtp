@@ -1,6 +1,6 @@
 <?php declare(strict_types=1);
 
-/**
+/*
  * Plugin Name:       No Bullsh*t SMTP
  * Plugin URI:        https://github.com/regularjogger/wp-no-bs-smtp
  * Description:       The simplest, safest and most dev-friendly way to send emails from WordPress via SMTP.
@@ -23,28 +23,34 @@ if ( ! defined( 'ABSPATH' ) ) {
 	die();
 }
 
+/**
+ * Makes WordPress send mail via SMTP.
+ */
 class SMTPConfig {
-	/**
-	 * Filter from address and name to make sure defaults from wp-config.php are only used
-	 * if these headers aren't already being passed via the $headers argument of wp_mail().
-	 *
-	 * WordPress sets these to WordPress <wordpress@yourdomain.xyz> by default so we
-	 * check if that's the case and only then overwrite the values with our defaults.
-	 */
 
+	/**
+	 * Sets the default from address if custom one isn't supplied via the $headers argument of wp_mail().
+	 *
+	 * Wordpress sets this to '<wordpress@yourdomain.xyz>' by default so this checks
+	 * if that's the case and only then overwrite the value with your default.
+	 */
 	private static function setDefaultFromEmail( string $from_email ) : string {
 		if ( str_starts_with( $from_email, 'wordpress@' ) ) {
 			$from_email = \SMTP_FROM;
 		}
-
 		return $from_email;
 	}
 
+	/**
+	 * Sets the default from name if custom one isn't supplied via the $headers argument of wp_mail().
+	 *
+	 * Wordpress sets this to 'WordPress' by default so this checks if
+	 * that's the case and only then overwrite the value with your default.
+	 */
 	private static function setDefaultFromName( string $from_name ) : string {
 		if ( $from_name === 'WordPress' ) {
 			$from_name = \SMTP_FROM_NAME;
 		}
-
 		return $from_name;
 	}
 
@@ -69,7 +75,7 @@ class SMTPConfig {
 	}
 
 	/**
-	 * Prints debug info to screen and/or log depending on WP_DEBUG and SMTP_DEBUG values set in wp-config.php.
+	 * Prints debug info to screen and/or log depending on WP_DEBUG and SMTP_DEBUG values.
 	 */
 	private static function printDebugInfo( WP_Error $wp_error ) : void {
 		if ( \WP_DEBUG === FALSE || \SMTP_DEBUG === 0 ) {
@@ -90,13 +96,19 @@ class SMTPConfig {
 	}
 
 	/**
-	 * Hooks the class methods to corresponding filters and actions.
+	 * Hooks the class methods in via corresponding filters and actions.
 	 */
 	public static function hookIntoWordpress() : void {
-		\add_filter( 'wp_mail_from', [self::class, 'setDefaultFromEmail'], 7 );     // Hooking into the filters at lower priority to not accidentally
-		\add_filter( 'wp_mail_from_name', [self::class, 'setDefaultFromName'], 7 ); // overwrite any values filtered around default priority or higher.
-		\add_action( 'phpmailer_init', [self::class, 'sendViaSMTP'] );
-		\add_action( 'wp_mail_failed', [self::class, 'printDebugInfo'] );
+		/*
+		 * Filters – hooking in at a lower priority (7) to not accidentally
+		 * overwrite any values filtered around default priority (10) or higher
+		 */
+		\add_filter( 'wp_mail_from',      [self::class, 'setDefaultFromEmail'], 7 );
+		\add_filter( 'wp_mail_from_name', [self::class, 'setDefaultFromName'],  7 );
+
+		// Actions
+		\add_action( 'phpmailer_init',    [self::class, 'sendViaSMTP']    );
+		\add_action( 'wp_mail_failed',    [self::class, 'printDebugInfo'] );
 	}
 }
 
